@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+          editToushi: document.getElementById('edit-toushi'),<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -437,6 +437,10 @@
       <h3 id="edit-modal-title">データ編集</h3>
       <form id="edit-form">
         <div class="form-group">
+          <label for="edit-toushi">投資番号:</label>
+          <input type="text" id="edit-toushi" required aria-label="編集する投資番号">
+        </div>
+        <div class="form-group">
           <label for="edit-data">スキャンデータ:</label>
           <textarea id="edit-data" required aria-label="編集するデータ"></textarea>
         </div>
@@ -556,6 +560,7 @@
           // モーダル
           editModal: document.getElementById('edit-modal'),
           editForm: document.getElementById('edit-form'),
+          editToushi: document.getElementById('edit-toushi'),
           editData: document.getElementById('edit-data'),
           editIrisu: document.getElementById('edit-irisu'),
           editHakosu: document.getElementById('edit-hakosu'),
@@ -713,7 +718,7 @@
         
         if (this.scanHistory.length === 0) {
           const emptyRow = document.createElement('tr');
-          emptyRow.innerHTML = '<td colspan="5" style="text-align:center;color:#ccc;">データがありません</td>';
+          emptyRow.innerHTML = '<td colspan="6" style="text-align:center;color:#ccc;">データがありません</td>';
           this.elements.historyBody.appendChild(emptyRow);
           return;
         }
@@ -740,9 +745,10 @@
         const truncatedData = displayData.length > 15 ? displayData.substring(0, 15) + '...' : displayData;
         const statusIcon = '📄'; // 品番抽出機能無効なので統一アイコン
         
-        console.log('履歴行作成:', { index, data: item.data, irisu: item.irisu, hakosu: item.hakosu, time });
+        console.log('履歴行作成:', { index, toushiNo: item.toushiNo, data: item.data, irisu: item.irisu, hakosu: item.hakosu, time });
         
         row.innerHTML = `
+          <td>${this.escapeHtml(String(item.toushiNo || ''))}</td>
           <td class="data-cell" title="${displayData}">${statusIcon} ${truncatedData}</td>
           <td>${this.escapeHtml(String(item.irisu || ''))}</td>
           <td>${this.escapeHtml(String(item.hakosu || ''))}</td>
@@ -876,7 +882,21 @@
         return { isDuplicate: false };
       }
 
-      validateInput(irisu, hakosu) {
+      validateInput(toushiNo, irisu, hakosu) {
+        // 投資番号チェック
+        if (!toushiNo || toushiNo.trim() === "") {
+          return { valid: false, message: '投資番号を入力してください' };
+        }
+        
+        // 空文字チェック
+        if (!irisu || irisu.trim() === "") {
+          return { valid: false, message: '入り数を入力してください' };
+        }
+        
+        if (!hakosu || hakosu.trim() === "") {
+          return { valid: false, message: '箱数を入力してください' };
+        }
+        
         const irisuNum = parseFloat(irisu);
         const hakosuNum = parseFloat(hakosu);
         
@@ -1000,23 +1020,27 @@
       }
 
       showDataInputDialog(code, originalData, isExtracted) {
-        const irisu = prompt("入り数を入力してください", "1");
+        const toushiNo = prompt("投資番号を入力してください", "");
+        if (toushiNo === null) return;
+        
+        const irisu = prompt("入り数を入力してください", "");
         if (irisu === null) return;
         
-        const hakosu = prompt("箱数を入力してください", "1");
+        const hakosu = prompt("箱数を入力してください", "");
         if (hakosu === null) return;
         
-        const validation = this.validateInput(irisu, hakosu);
+        const validation = this.validateInput(toushiNo, irisu, hakosu);
         if (!validation.valid) {
           alert(validation.message);
           return;
         }
         
-        this.addHistoryItem(code, originalData, isExtracted, irisu, hakosu);
+        this.addHistoryItem(code, originalData, isExtracted, toushiNo, irisu, hakosu);
       }
 
-      addHistoryItem(data, originalData, isExtracted, irisu, hakosu) {
+      addHistoryItem(data, originalData, isExtracted, toushiNo, irisu, hakosu) {
         const newItem = {
+          toushiNo: toushiNo,
           data: data,
           originalData: originalData,
           isExtracted: isExtracted,
@@ -1163,13 +1187,14 @@
           const now = new Date();
           const filename = `qr_history_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}.csv`;
           
-          const csvRows = ["スキャンデータ,入り数,箱数,登録時刻"];
+          const csvRows = ["投資番号,スキャンデータ,入り数,箱数,登録時刻"];
           
           this.scanHistory.forEach(item => {
             const time = new Date(item.timestamp || Date.now()).toLocaleString('ja-JP');
+            const toushiNo = (item.toushiNo || '').replace(/"/g, '""');
             const data = item.data.replace(/"/g, '""');
             
-            csvRows.push(`"${data}","${item.irisu}","${item.hakosu}","${time}"`);
+            csvRows.push(`"${toushiNo}","${data}","${item.irisu}","${item.hakosu}","${time}"`);
           });
           
           const csvContent = "\uFEFF" + csvRows.join("\n");
@@ -1281,13 +1306,14 @@
         this.editingIndex = index;
         const item = this.scanHistory[index];
         
+        this.elements.editToushi.value = item.toushiNo || '';
         this.elements.editData.value = item.data;
         this.elements.editIrisu.value = item.irisu;
         this.elements.editHakosu.value = item.hakosu;
         
         this.elements.editModal.style.display = 'block';
         this.elements.editModal.setAttribute('aria-hidden', 'false');
-        this.elements.editData.focus();
+        this.elements.editToushi.focus();
       }
 
       saveEdit(event) {
@@ -1298,11 +1324,12 @@
           return;
         }
         
+        const toushiNo = this.elements.editToushi.value.trim();
         const data = this.elements.editData.value.trim();
         const irisu = this.elements.editIrisu.value.trim();
         const hakosu = this.elements.editHakosu.value.trim();
         
-        const validation = this.validateInput(irisu, hakosu);
+        const validation = this.validateInput(toushiNo, irisu, hakosu);
         if (!validation.valid) {
           alert(validation.message);
           return;
@@ -1313,6 +1340,7 @@
           return;
         }
         
+        this.scanHistory[this.editingIndex].toushiNo = toushiNo;
         this.scanHistory[this.editingIndex].data = data;
         this.scanHistory[this.editingIndex].irisu = irisu;
         this.scanHistory[this.editingIndex].hakosu = hakosu;
@@ -1335,7 +1363,7 @@
         if (index < 0 || index >= this.scanHistory.length) return;
         
         const item = this.scanHistory[index];
-        if (confirm(`このデータを削除しますか？\n\nデータ: ${item.data}\n入り数: ${item.irisu}\n箱数: ${item.hakosu}`)) {
+        if (confirm(`このデータを削除しますか？\n\n投資番号: ${item.toushiNo || 'なし'}\nデータ: ${item.data}\n入り数: ${item.irisu}\n箱数: ${item.hakosu}`)) {
           this.scanHistory.splice(index, 1);
           this.saveData();
           this.updateUI();
@@ -1353,6 +1381,7 @@
         const message = [
           '詳細情報:',
           '',
+          `投資番号: ${item.toushiNo || 'なし'}`,
           `スキャンデータ: ${item.data}`,
           `入り数: ${item.irisu}`,
           `箱数: ${item.hakosu}`,
