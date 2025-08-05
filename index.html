@@ -568,7 +568,10 @@
         try {
           // 履歴データの読み込み
           const savedHistory = localStorage.getItem(CONFIG.STORAGE_KEY);
+          console.log('保存されたデータ:', savedHistory);
+          
           this.scanHistory = savedHistory ? JSON.parse(savedHistory) : [];
+          console.log('読み込んだ履歴:', this.scanHistory);
           
           // 設定の読み込み
           const savedSettings = localStorage.getItem(CONFIG.SETTINGS_KEY);
@@ -580,6 +583,7 @@
         } catch (error) {
           console.error('データ読み込みエラー:', error);
           this.showAlert('データの読み込みに失敗しました', 'danger');
+          this.scanHistory = []; // エラー時は空配列で初期化
         }
       }
 
@@ -704,6 +708,7 @@
       }
 
       renderHistory() {
+        console.log('履歴レンダリング開始:', this.scanHistory);
         this.elements.historyBody.innerHTML = '';
         
         if (this.scanHistory.length === 0) {
@@ -714,9 +719,12 @@
         }
         
         this.scanHistory.forEach((item, index) => {
+          console.log(`履歴項目 ${index}:`, item);
           const row = this.createHistoryRow(item, index);
           this.elements.historyBody.appendChild(row);
         });
+        
+        console.log('履歴レンダリング完了');
       }
 
       createHistoryRow(item, index) {
@@ -728,14 +736,16 @@
           minute: '2-digit'
         });
         
-        const displayData = this.escapeHtml(item.data);
+        const displayData = this.escapeHtml(item.data || 'データなし');
         const truncatedData = displayData.length > 15 ? displayData.substring(0, 15) + '...' : displayData;
         const statusIcon = '📄'; // 品番抽出機能無効なので統一アイコン
         
+        console.log('履歴行作成:', { index, data: item.data, irisu: item.irisu, hakosu: item.hakosu, time });
+        
         row.innerHTML = `
           <td class="data-cell" title="${displayData}">${statusIcon} ${truncatedData}</td>
-          <td>${this.escapeHtml(item.irisu)}</td>
-          <td>${this.escapeHtml(item.hakosu)}</td>
+          <td>${this.escapeHtml(String(item.irisu || ''))}</td>
+          <td>${this.escapeHtml(String(item.hakosu || ''))}</td>
           <td>${time}</td>
           <td>
             <button class="btn btn-table" onclick="app.editItem(${index})" aria-label="編集">✏️</button>
@@ -1015,12 +1025,16 @@
           timestamp: Date.now()
         };
         
+        console.log('新しい履歴項目を追加:', newItem);
+        
         this.scanHistory.push(newItem);
         this.saveData();
         this.updateUI();
         
         const status = isExtracted ? ' - 品番抽出済み' : '';
         this.updateStatus(`✅ データを登録しました (${this.scanHistory.length}件)${status}`, 'success');
+        
+        console.log('現在の履歴:', this.scanHistory);
       }
 
       handleScanError(error) {
