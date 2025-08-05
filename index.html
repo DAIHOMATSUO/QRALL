@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📱 QRリーダー Pro</title>
+  <title>📱 QRリーダー AllF</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     :root {
@@ -333,18 +333,18 @@
 </head>
 <body>
   <div class="container">
-    <h1>📱 QRリーダー Pro</h1>
+    <h1>📱 QRリーダー AllF</h1>
     
-    <!-- 設定セクション -->
-    <div class="section">
+    <!-- 設定セクション - 非表示 -->
+    <div class="section" style="display: none;">
       <h3>⚙️ スキャン設定</h3>
       <div class="setting-item">
         <label for="extraction-mode">品番抽出:</label>
         <select id="extraction-mode" aria-label="品番抽出モード">
+          <option value="off" selected>無効</option>
           <option value="auto">自動 (5桁-5桁-5桁)</option>
           <option value="custom">カスタムパターン</option>
           <option value="manual">手動確認</option>
-          <option value="off">無効</option>
         </select>
       </div>
       <div class="setting-item" id="custom-pattern-group" style="display:none;">
@@ -437,7 +437,7 @@
       <h3 id="edit-modal-title">データ編集</h3>
       <form id="edit-form">
         <div class="form-group">
-          <label for="edit-data">品番/データ:</label>
+          <label for="edit-data">スキャンデータ:</label>
           <textarea id="edit-data" required aria-label="編集するデータ"></textarea>
         </div>
         <div class="form-group">
@@ -730,7 +730,7 @@
         
         const displayData = this.escapeHtml(item.data);
         const truncatedData = displayData.length > 15 ? displayData.substring(0, 15) + '...' : displayData;
-        const statusIcon = item.isExtracted ? '🏷️' : '📄';
+        const statusIcon = '📄'; // 品番抽出機能無効なので統一アイコン
         
         row.innerHTML = `
           <td class="data-cell" title="${displayData}">${statusIcon} ${truncatedData}</td>
@@ -950,15 +950,15 @@
             navigator.vibrate(100);
           }
           
-          // 品番抽出
-          const { code, isExtracted, originalData } = this.extractProductCode(qrCodeMessage);
+          // 品番抽出は無効なので、そのままデータを使用
+          const code = qrCodeMessage;
+          const isExtracted = false;
+          const originalData = qrCodeMessage;
           
           // 重複チェック
           const duplicateCheck = this.checkDuplicate(code);
           
-          let resultMessage = isExtracted 
-            ? `✅ 品番抽出: ${this.escapeHtml(code)}`
-            : `✅ 読み取り成功: ${this.escapeHtml(code)}`;
+          let resultMessage = `✅ 読み取り成功: ${this.escapeHtml(code)}`;
           
           if (duplicateCheck.isDuplicate) {
             resultMessage += `<br><div class="duplicate-warning">`;
@@ -973,16 +973,14 @@
           this.updateResult(resultMessage, true);
           
           // 確認ダイアログ
-          let confirmMessage = isExtracted 
-            ? `品番: ${code}\n\n登録しますか？`
-            : `読み取り結果: ${code}\n\n登録しますか？`;
+          let confirmMessage = `読み取り結果: ${code}\n\n登録しますか？`;
           
           if (duplicateCheck.isDuplicate) {
             confirmMessage += '\n\n※ 重複の可能性があります';
           }
           
           if (confirm(confirmMessage)) {
-            this.showDataInputDialog(code, originalData || qrCodeMessage, isExtracted);
+            this.showDataInputDialog(code, originalData, isExtracted);
           }
           
         } catch (error) {
@@ -1151,15 +1149,13 @@
           const now = new Date();
           const filename = `qr_history_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}.csv`;
           
-          const csvRows = ["品番/データ,入り数,箱数,登録時刻,元データ,抽出フラグ"];
+          const csvRows = ["スキャンデータ,入り数,箱数,登録時刻"];
           
           this.scanHistory.forEach(item => {
             const time = new Date(item.timestamp || Date.now()).toLocaleString('ja-JP');
-            const originalData = (item.originalData || item.data).replace(/"/g, '""');
             const data = item.data.replace(/"/g, '""');
-            const extractedFlag = item.isExtracted ? '1' : '0';
             
-            csvRows.push(`"${data}","${item.irisu}","${item.hakosu}","${time}","${originalData}","${extractedFlag}"`);
+            csvRows.push(`"${data}","${item.irisu}","${item.hakosu}","${time}"`);
           });
           
           const csvContent = "\uFEFF" + csvRows.join("\n");
@@ -1343,11 +1339,9 @@
         const message = [
           '詳細情報:',
           '',
-          `品番/データ: ${item.data}`,
-          `元データ: ${item.originalData || item.data}`,
+          `スキャンデータ: ${item.data}`,
           `入り数: ${item.irisu}`,
           `箱数: ${item.hakosu}`,
-          `品番抽出: ${item.isExtracted ? 'あり' : 'なし'}`,
           `登録時刻: ${registeredTime}`,
           `編集時刻: ${editedTime}`
         ].join('\n');
