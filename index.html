@@ -63,7 +63,7 @@
   <div id="history">
     <table>
       <thead>
-        <tr><th>データ</th><th>数量</th></tr>
+        <tr><th>データ</th><th>入り数</th><th>箱数</th></tr>
       </thead>
       <tbody id="history-body"></tbody>
     </table>
@@ -72,6 +72,7 @@
     <button id="switch-camera-btn">🔄 カメラ切替</button>
     <button id="stop-btn">📴 スキャン停止</button>
     <button id="export-btn">📥 CSVエクスポート</button>
+    <button id="save-btn">💾 保存</button>
     <button id="clear-btn">🗑️ 履歴クリア</button>
   </div>
 
@@ -82,11 +83,21 @@
     const exportBtn = document.getElementById('export-btn');
     const clearBtn = document.getElementById('clear-btn');
     const switchCameraBtn = document.getElementById('switch-camera-btn');
+    const saveBtn = document.getElementById('save-btn');
 
-    let scanHistory = [];
+    let scanHistory = JSON.parse(localStorage.getItem('qrScanHistory')) || [];
     let currentFacingMode = "environment";
 
     const qrReader = new Html5Qrcode("reader");
+
+    function renderHistory() {
+      historyBody.innerHTML = '';
+      scanHistory.forEach(item => {
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `<td>${item.data}</td><td>${item.irisu}</td><td>${item.hakosu}</td>`;
+        historyBody.appendChild(newRow);
+      });
+    }
 
     function startScanner() {
       qrReader.start(
@@ -97,12 +108,11 @@
         },
         qrCodeMessage => {
           if (confirm(`読み取り結果: ${qrCodeMessage}\n登録しますか？`)) {
-            const quantity = prompt("数量を入力してください", "1");
-            if (quantity !== null && quantity !== "") {
-              scanHistory.push({ data: qrCodeMessage, qty: quantity });
-              const newRow = document.createElement('tr');
-              newRow.innerHTML = `<td>${qrCodeMessage}</td><td>${quantity}</td>`;
-              historyBody.appendChild(newRow);
+            const irisu = prompt("入り数を入力してください", "1");
+            const hakosu = prompt("箱数を入力してください", "1");
+            if (irisu !== null && irisu !== "" && hakosu !== null && hakosu !== "") {
+              scanHistory.push({ data: qrCodeMessage, irisu: irisu, hakosu: hakosu });
+              renderHistory();
             }
           }
         },
@@ -115,6 +125,7 @@
     }
 
     startScanner();
+    renderHistory();
 
     stopBtn.addEventListener('click', () => {
       qrReader.stop().then(() => {
@@ -129,9 +140,9 @@
         alert('エクスポートする履歴がありません');
         return;
       }
-      const csvRows = ["データ,数量"];
+      const csvRows = ["データ,入り数,箱数"];
       scanHistory.forEach(item => {
-        csvRows.push(`${item.data},${item.qty}`);
+        csvRows.push(`${item.data},${item.irisu},${item.hakosu}`);
       });
       const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
       const encodedUri = encodeURI(csvContent);
@@ -145,8 +156,14 @@
 
     clearBtn.addEventListener('click', () => {
       scanHistory = [];
-      historyBody.innerHTML = '';
+      localStorage.removeItem('qrScanHistory');
+      renderHistory();
       resultElem.innerText = '履歴をクリアしました';
+    });
+
+    saveBtn.addEventListener('click', () => {
+      localStorage.setItem('qrScanHistory', JSON.stringify(scanHistory));
+      alert('履歴を保存しました');
     });
 
     switchCameraBtn.addEventListener('click', () => {
