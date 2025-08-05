@@ -1,9 +1,4 @@
-    // 品番抽出機能
-    function extractProductCode(data) {
-      const regex = /\d{5}-\d{5}-\d{5}/g;
-      const matches = data.match(regex);
-      return matches ? matches[0] : null; // 最初の一致を返す
-    }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -305,7 +300,6 @@
           <thead>
             <tr>
               <th>通し番号</th>
-              <th>品番</th>
               <th>スキャンデータ</th>
               <th>入り数</th>
               <th>箱数</th>
@@ -329,10 +323,6 @@
         <div class="form-group">
           <label for="edit-toushi">通し番号:</label>
           <input type="number" id="edit-toushi" min="1" step="1" required>
-        </div>
-        <div class="form-group">
-          <label for="edit-product">品番:</label>
-          <input type="text" id="edit-product" required>
         </div>
         <div class="form-group">
           <label for="edit-data">スキャンデータ:</label>
@@ -389,7 +379,6 @@
       editModal: document.getElementById('edit-modal'),
       editForm: document.getElementById('edit-form'),
       editToushi: document.getElementById('edit-toushi'),
-      editProduct: document.getElementById('edit-product'),
       editData: document.getElementById('edit-data'),
       editIrisu: document.getElementById('edit-irisu'),
       editHakosu: document.getElementById('edit-hakosu'),
@@ -505,15 +494,11 @@
         minute: '2-digit'
       });
       
-      const displayData = escapeHtml(item.originalData || item.data || '');
-      const truncatedData = displayData.length > 12 ? displayData.substring(0, 12) + '...' : displayData;
-      
-      const productCode = item.productCode || '未抽出';
-      const truncatedProductCode = productCode.length > 12 ? productCode.substring(0, 12) + '...' : productCode;
+      const displayData = escapeHtml(item.data || '');
+      const truncatedData = displayData.length > 15 ? displayData.substring(0, 15) + '...' : displayData;
       
       row.innerHTML = `
         <td>${escapeHtml(String(item.toushiNo || ''))}</td>
-        <td class="data-cell" title="${escapeHtml(productCode)}">${productCode === '未抽出' ? '📄' : '🏷️'} ${escapeHtml(truncatedProductCode)}</td>
         <td class="data-cell" title="${displayData}">📄 ${truncatedData}</td>
         <td>${escapeHtml(String(item.irisu || ''))}</td>
         <td>${escapeHtml(String(item.hakosu || ''))}</td>
@@ -668,18 +653,9 @@
           navigator.vibrate(100);
         }
         
-        // 品番抽出
-        const extractedProductCode = extractProductCode(qrCodeMessage);
-        
         const duplicateCheck = checkDuplicate(qrCodeMessage);
         
         let resultMessage = `✅ 読み取り成功: ${escapeHtml(qrCodeMessage)}`;
-        
-        if (extractedProductCode) {
-          resultMessage += `<br>🏷️ 抽出された品番: <strong>${escapeHtml(extractedProductCode)}</strong>`;
-        } else {
-          resultMessage += `<br>📄 品番パターンが見つかりませんでした`;
-        }
         
         if (duplicateCheck.isDuplicate) {
           resultMessage += `<br><div class="duplicate-warning">⚠️ ${duplicateCheck.timeLeft}秒前にスキャンされています</div>`;
@@ -687,18 +663,13 @@
         
         updateResult(resultMessage, true);
         
-        let confirmMessage = `読み取り結果: ${qrCodeMessage}`;
-        if (extractedProductCode) {
-          confirmMessage += `\n抽出された品番: ${extractedProductCode}`;
-        }
-        confirmMessage += `\n\n登録しますか？`;
-        
+        let confirmMessage = `読み取り結果: ${qrCodeMessage}\n\n登録しますか？`;
         if (duplicateCheck.isDuplicate) {
           confirmMessage += '\n\n※ 重複の可能性があります';
         }
         
         if (confirm(confirmMessage)) {
-          showDataInputDialog(qrCodeMessage, extractedProductCode);
+          showDataInputDialog(qrCodeMessage);
         }
         
       } catch (error) {
@@ -708,7 +679,7 @@
     }
 
     // データ入力ダイアログ
-    function showDataInputDialog(originalData, productCode) {
+    function showDataInputDialog(code) {
       const irisu = prompt("入り数を入力してください", "");
       if (irisu === null) return;
       
@@ -722,16 +693,14 @@
       }
       
       const nextToushiNo = getNextToushiNo();
-      addHistoryItem(originalData, productCode, nextToushiNo, irisu, hakosu);
+      addHistoryItem(code, nextToushiNo, irisu, hakosu);
     }
 
     // 履歴アイテム追加
-    function addHistoryItem(originalData, productCode, toushiNo, irisu, hakosu) {
+    function addHistoryItem(data, toushiNo, irisu, hakosu) {
       const newItem = {
         toushiNo: toushiNo,
-        data: productCode || originalData, // 品番があれば品番、なければ元データ
-        productCode: productCode || '未抽出',
-        originalData: originalData,
+        data: data,
         irisu: irisu,
         hakosu: hakosu,
         timestamp: Date.now()
@@ -740,11 +709,7 @@
       scanHistory.push(newItem);
       saveData();
       updateUI();
-      
-      const statusMessage = productCode 
-        ? `✅ 品番抽出・登録完了 (${scanHistory.length}件)`
-        : `✅ データを登録しました (${scanHistory.length}件)`;
-      updateStatus(statusMessage);
+      updateStatus(`✅ データを登録しました (${scanHistory.length}件)`);
     }
 
     // スキャンエラー処理
@@ -825,16 +790,15 @@
       const currentTime = new Date();
       const filename = `${currentTime.getFullYear()}${(currentTime.getMonth()+1).toString().padStart(2,'0')}${currentTime.getDate().toString().padStart(2,'0')}${currentTime.getHours().toString().padStart(2,'0')}${currentTime.getMinutes().toString().padStart(2,'0')}.csv`;
       
-      const csvRows = ["通し番号,品番,スキャンデータ,入り数,箱数,登録時刻"];
+      const csvRows = ["通し番号,スキャンデータ,入り数,箱数,登録時刻"];
       
       scanHistory.forEach(item => {
         const itemTime = new Date(item.timestamp || Date.now());
         const time = itemTime.toLocaleString('ja-JP');
         const toushiNo = String(item.toushiNo || '').replace(/"/g, '""');
-        const productCode = String(item.productCode || '未抽出').replace(/"/g, '""');
-        const originalData = String(item.originalData || item.data || '').replace(/"/g, '""');
+        const data = item.data.replace(/"/g, '""');
         
-        csvRows.push(`"${toushiNo}","${productCode}","${originalData}","${item.irisu}","${item.hakosu}","${time}"`);
+        csvRows.push(`"${toushiNo}","${data}","${item.irisu}","${item.hakosu}","${time}"`);
       });
       
       const csvContent = "\uFEFF" + csvRows.join("\n");
@@ -932,8 +896,7 @@
       const item = scanHistory[index];
       
       elements.editToushi.value = item.toushiNo || '';
-      elements.editProduct.value = item.productCode || '';
-      elements.editData.value = item.originalData || item.data || '';
+      elements.editData.value = item.data;
       elements.editIrisu.value = item.irisu;
       elements.editHakosu.value = item.hakosu;
       
@@ -951,8 +914,7 @@
       }
       
       const toushiNo = elements.editToushi.value.trim();
-      const productCode = elements.editProduct.value.trim();
-      const originalData = elements.editData.value.trim();
+      const data = elements.editData.value.trim();
       const irisu = elements.editIrisu.value.trim();
       const hakosu = elements.editHakosu.value.trim();
       
@@ -977,15 +939,13 @@
         return;
       }
       
-      if (!originalData) {
-        alert('スキャンデータを入力してください');
+      if (!data) {
+        alert('データを入力してください');
         return;
       }
       
       scanHistory[editingIndex].toushiNo = toushiNoNum.toString();
-      scanHistory[editingIndex].productCode = productCode || '未抽出';
-      scanHistory[editingIndex].data = productCode || originalData;
-      scanHistory[editingIndex].originalData = originalData;
+      scanHistory[editingIndex].data = data;
       scanHistory[editingIndex].irisu = irisu;
       scanHistory[editingIndex].hakosu = hakosu;
       scanHistory[editingIndex].editedAt = Date.now();
@@ -1007,7 +967,7 @@
       if (index < 0 || index >= scanHistory.length) return;
       
       const item = scanHistory[index];
-      if (confirm(`このデータを削除しますか？\n\n通し番号: ${item.toushiNo || 'なし'}\n品番: ${item.productCode || '未抽出'}\nデータ: ${item.originalData || item.data || ''}\n入り数: ${item.irisu}\n箱数: ${item.hakosu}`)) {
+      if (confirm(`このデータを削除しますか？\n\n通し番号: ${item.toushiNo || 'なし'}\nデータ: ${item.data}\n入り数: ${item.irisu}\n箱数: ${item.hakosu}`)) {
         scanHistory.splice(index, 1);
         saveData();
         updateUI();
@@ -1028,8 +988,7 @@
         '詳細情報:',
         '',
         `通し番号: ${item.toushiNo || 'なし'}`,
-        `品番: ${item.productCode || '未抽出'}`,
-        `スキャンデータ: ${item.originalData || item.data || ''}`,
+        `スキャンデータ: ${item.data}`,
         `入り数: ${item.irisu}`,
         `箱数: ${item.hakosu}`,
         `登録時刻: ${registeredTime}`,
