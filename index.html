@@ -489,10 +489,40 @@
         this.lastScanTime = {};
         this.editingIndex = -1;
         
+        console.log('QRリーダーアプリ初期化開始');
+        
         this.initializeElements();
         this.loadData();
         this.attachEventListeners();
         this.updateUI();
+        
+        // カメラ権限の事前チェック
+        this.checkCameraPermission();
+        
+        console.log('QRリーダーアプリ初期化完了');
+      }
+
+      async checkCameraPermission() {
+        try {
+          // 権限状態をチェック
+          if (navigator.permissions) {
+            const permission = await navigator.permissions.query({ name: 'camera' });
+            console.log('カメラ権限状態:', permission.state);
+            
+            if (permission.state === 'denied') {
+              this.updateStatus('❌ カメラアクセスが拒否されています。ブラウザ設定を確認してください', 'danger');
+            } else if (permission.state === 'prompt') {
+              this.updateStatus('📱 「開始」ボタンを押してカメラアクセスを許可してください');
+            } else if (permission.state === 'granted') {
+              this.updateStatus('📱 カメラアクセス準備完了。「開始」ボタンでスキャン開始');
+            }
+          } else {
+            this.updateStatus('📱 「開始」ボタンでスキャンを開始してください');
+          }
+        } catch (error) {
+          console.log('権限チェックスキップ:', error);
+          this.updateStatus('📱 QRリーダーの準備完了');
+        }
       }
 
       initializeElements() {
@@ -629,19 +659,31 @@
         window.addEventListener('beforeunload', () => this.cleanup());
         window.addEventListener('visibilitychange', () => {
           if (document.hidden && this.isScanning) {
+            console.log('ページが非表示になったためスキャンを停止');
             this.stopScanner();
           }
         });
         
-        // レスポンシブ対応
+        // レスポンシブ対応（デバウンス処理）
         let resizeTimeout;
         window.addEventListener('resize', () => {
           clearTimeout(resizeTimeout);
           resizeTimeout = setTimeout(() => {
             if (this.isScanning) {
+              console.log('画面サイズ変更によりスキャナーを再起動');
               this.restartScannerIfRunning();
             }
-          }, 500);
+          }, 1000); // 1秒のデバウンス
+        });
+        
+        // 画面回転対応
+        window.addEventListener('orientationchange', () => {
+          setTimeout(() => {
+            if (this.isScanning) {
+              console.log('画面回転によりスキャナーを再起動');
+              this.restartScannerIfRunning();
+            }
+          }, 1000); // 回転完了を待つ
         });
       }
 
@@ -852,34 +894,40 @@
         try {
           this.updateStatus('カメラを起動中...');
           
-          const quality = CONFIG.QUALITY_SETTINGS[this.elements.qualitySelect.value];
-          const qrboxSize = this.getQRBoxSize();
+          // 既存のQRリーダーをクリーンアップ
+          if (this.qrReader) {
+            try {
+              await this.qrReader.stop();
+              this.qrReader.clear();
+            } catch (e) {
+              console.warn('既存QRリーダーのクリーンアップ:', e);
+            }
+          }
           
           this.qrReader = new Html5Qrcode("reader");
+          
+          const quality = CONFIG.QUALITY_SETTINGS[this.elements.qualitySelect.value];
+          const qrboxSize = this.getQRBoxSize();
           
           const config = {
             fps: quality.fps,
             qrbox: qrboxSize,
             aspectRatio: quality.aspectRatio,
-            disableFlip: false,
-            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+            disableFlip: false
           };
 
-          const constraints = {
-            facingMode: this.currentFacingMode,
-            advanced: [{
-              focusMode: "continuous",
-              whiteBalanceMode: "auto",
-              exposureMode: "auto"
-            }]
-          };
-
+          // カメラ制約をシンプルに
+          const cameraConstraints = { facingMode: this.currentFacingMode };
+          
+          console.log('カメラ起動開始:', { constraints: cameraConstraints, config });
+          
           await this.qrReader.start(
-            constraints,
+            cameraConstraints,
             config,
             (qrCodeMessage) => this.handleScanSuccess(qrCodeMessage),
             (errorMessage) => {
-              // 連続スキャンエラーは無視
+              // 連続スキャンエラーは通常無視
+              console.debug('スキャンエラー（正常）:', errorMessage);
             }
           );
           
@@ -887,7 +935,10 @@
           this.updateStatus('📷 スキャン中... QRコードをカメラに向けてください', 'success');
           this.updateUI();
           
+          console.log('カメラ起動成功');
+          
         } catch (error) {
+          console.error('カメラ起動エラー:', error);
           this.handleScanError(error);
         }
       }
@@ -975,39 +1026,71 @@
       }
 
       handleScanError(error) {
-        console.error('スキャンエラー:', error);
+        console.error('スキャンエラー詳細:', error);
         
         let message = CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR;
+        let suggestion = '';
         
-        if (error.name === 'NotAllowedError' || error.message.includes('Permission')) {
+        // エラーの種類を詳細に判定
+        const errorStr = error.toString().toLowerCase();
+        
+        if (error.name === 'NotAllowedError' || errorStr.includes('permission') || errorStr.includes('denied')) {
           message = CONFIG.ERROR_MESSAGES.CAMERA_PERMISSION;
-        } else if (error.name === 'NotFoundError' || error.message.includes('No camera')) {
+          suggestion = '解決方法:\n1. ブラウザのアドレスバー左側のカメラアイコンをクリック\n2. 「許可」を選択\n3. ページを再読み込み';
+        } else if (error.name === 'NotFoundError' || errorStr.includes('no camera') || errorStr.includes('not found')) {
           message = CONFIG.ERROR_MESSAGES.CAMERA_NOT_FOUND;
-        } else if (error.name === 'NotReadableError' || error.message.includes('in use')) {
+          suggestion = '解決方法:\n1. カメラが接続されているか確認\n2. 他のアプリでカメラが使用中でないか確認\n3. ブラウザを再起動';
+        } else if (error.name === 'NotReadableError' || errorStr.includes('in use') || errorStr.includes('busy')) {
           message = CONFIG.ERROR_MESSAGES.CAMERA_IN_USE;
+          suggestion = '解決方法:\n1. 他のタブやアプリでカメラを使用していないか確認\n2. ブラウザを再起動\n3. しばらく待ってから再試行';
+        } else if (errorStr.includes('https') || errorStr.includes('secure')) {
+          message = 'カメラアクセスにはHTTPS接続が必要です';
+          suggestion = '解決方法:\n1. https://で始まるURLでアクセス\n2. ローカル環境の場合はlocalhostを使用';
         }
         
         this.updateStatus(`❌ ${message}`, 'danger');
         this.showAlert(message, 'danger');
+        
+        if (suggestion) {
+          console.log(suggestion);
+          // 詳細なエラー情報をコンソールに出力
+          setTimeout(() => {
+            if (confirm(`${message}\n\n詳細な解決方法を確認しますか？`)) {
+              alert(suggestion);
+            }
+          }, 1000);
+        }
+        
         this.isScanning = false;
+        this.qrReader = null;
         this.updateUI();
       }
 
       stopScanner() {
-        if (!this.isScanning || !this.qrReader) return;
+        if (!this.isScanning && !this.qrReader) return;
         
-        try {
+        console.log('スキャナー停止開始');
+        
+        this.isScanning = false;
+        
+        if (this.qrReader) {
           this.qrReader.stop().then(() => {
-            this.cleanup();
+            console.log('スキャナー正常停止');
+            this.qrReader.clear();
+            this.qrReader = null;
             this.updateStatus('⏹️ スキャンを停止しました');
             this.updateResult('スキャンを停止しました');
+            this.updateUI();
           }).catch(error => {
-            console.error('スキャナー停止エラー:', error);
-            this.cleanup();
+            console.warn('スキャナー停止エラー:', error);
+            this.qrReader.clear();
+            this.qrReader = null;
+            this.updateStatus('⏹️ スキャンを停止しました（強制）');
+            this.updateUI();
           });
-        } catch (error) {
-          console.error('スキャナー停止エラー:', error);
-          this.cleanup();
+        } else {
+          this.updateStatus('⏹️ スキャンを停止しました');
+          this.updateUI();
         }
       }
 
@@ -1047,9 +1130,14 @@
       }
 
       restartScannerIfRunning() {
-        if (this.isScanning) {
+        if (this.isScanning && this.qrReader) {
+          console.log('スキャナー再起動開始');
           this.stopScanner();
-          setTimeout(() => this.startScanner(), 500);
+          // 十分な間隔を空けて再起動
+          setTimeout(() => {
+            console.log('スキャナー再起動実行');
+            this.startScanner();
+          }, 1000);
         }
       }
 
