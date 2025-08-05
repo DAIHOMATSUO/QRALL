@@ -2,177 +2,1297 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>📱 QRリーダー デモ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📱 QRリーダー Pro</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      background: #1a4789;
-      color: white;
-      margin: 0;
-      padding: 20px;
+    :root {
+      --primary-color: #1a4789;
+      --secondary-color: #10356f;
+      --accent-color: #0d2a5a;
+      --success-color: #28a745;
+      --warning-color: #ffc107;
+      --danger-color: #dc3545;
+      --light-bg: rgba(255,255,255,0.1);
+      --border-color: rgba(255,255,255,0.3);
+      --text-color: white;
+      --font-family: 'BIZ UDゴシック', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      --border-radius: 8px;
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 12px;
+      --spacing-lg: 16px;
+      --spacing-xl: 20px;
+      --font-size-sm: 0.8em;
+      --font-size-md: 0.9em;
+      --font-size-lg: 1.1em;
+      --font-size-xl: 1.5em;
     }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: var(--font-family);
+      background: var(--primary-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: var(--spacing-md);
+      min-height: 100vh;
+      line-height: 1.4;
+    }
+    
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
     h1 {
       text-align: center;
-      margin-bottom: 20px;
+      margin: var(--spacing-md) 0 var(--spacing-xl) 0;
+      font-size: var(--font-size-xl);
     }
+    
+    .section {
+      background: var(--light-bg);
+      padding: var(--spacing-lg);
+      border-radius: var(--border-radius);
+      margin: var(--spacing-xl) 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    
+    .section h3 {
+      margin: 0 0 var(--spacing-md) 0;
+      font-size: var(--font-size-lg);
+    }
+    
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: var(--spacing-md) 0;
+      gap: var(--spacing-md);
+    }
+    
+    .setting-item label {
+      font-size: var(--font-size-md);
+      flex: 1;
+    }
+    
+    .setting-item select, .setting-item input {
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: none;
+      border-radius: var(--spacing-xs);
+      background: white;
+      color: #333;
+      font-size: var(--font-size-md);
+      min-width: 120px;
+    }
+    
     #reader {
       width: 100%;
-      max-width: 400px;
-      margin: 0 auto 20px;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      background: #000;
+      min-height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    #result, #history {
+    
+    #reader video, #reader canvas {
+      width: 100% !important;
+      height: auto !important;
+      max-height: 60vh;
+      object-fit: cover;
+    }
+    
+    .status {
       text-align: center;
-      font-size: 1.2em;
-      margin-top: 10px;
+      font-size: var(--font-size-md);
+      color: #ccc;
+      margin: var(--spacing-md) 0;
+      min-height: 24px;
     }
-    button {
-      display: inline-block;
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 1em;
-      background: #10356f;
+    
+    .result {
+      text-align: center;
+      font-size: var(--font-size-lg);
+      margin: var(--spacing-lg) 0;
+      padding: var(--spacing-lg);
+      background: var(--light-bg);
+      border-radius: var(--border-radius);
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: break-word;
+    }
+    
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-sm);
+      justify-content: center;
+      margin: var(--spacing-xl) 0;
+    }
+    
+    .btn {
+      padding: var(--spacing-md) var(--spacing-lg);
+      font-size: var(--font-size-md);
+      background: var(--secondary-color);
       border: none;
-      color: white;
-      border-radius: 10px;
+      color: var(--text-color);
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 80px;
+      font-family: inherit;
     }
+    
+    .btn:hover:not(:disabled) {
+      background: var(--accent-color);
+      transform: translateY(-1px);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-success { background: var(--success-color); }
+    .btn-warning { background: var(--warning-color); color: #000; }
+    .btn-danger { background: var(--danger-color); }
+    
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--border-radius);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
     table {
       width: 100%;
-      max-width: 400px;
-      margin: 20px auto;
       border-collapse: collapse;
+      background: var(--light-bg);
     }
+    
     th, td {
-      border: 1px solid white;
-      padding: 8px;
+      border: 1px solid var(--border-color);
+      padding: var(--spacing-md) var(--spacing-sm);
       text-align: center;
+      font-size: var(--font-size-md);
     }
+    
     th {
-      background: #10356f;
+      background: var(--secondary-color);
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
-    input.quantity {
-      width: 60px;
+    
+    td {
+      word-break: break-word;
+    }
+    
+    .data-cell {
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .btn-table {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: var(--font-size-sm);
+      margin: 0 2px;
+      min-width: auto;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.8);
+    }
+    
+    .modal-content {
+      background: var(--primary-color);
+      margin: 10% auto;
+      padding: var(--spacing-xl);
+      border-radius: var(--border-radius);
+      width: 90%;
+      max-width: 400px;
+      position: relative;
+    }
+    
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      position: absolute;
+      right: var(--spacing-lg);
+      top: var(--spacing-md);
+    }
+    
+    .close:hover {
+      color: white;
+    }
+    
+    .form-group {
+      margin: var(--spacing-lg) 0;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: var(--spacing-sm);
+      font-weight: bold;
+    }
+    
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: var(--spacing-md);
+      border: none;
+      border-radius: var(--spacing-xs);
+      font-size: var(--font-size-md);
+      font-family: inherit;
+    }
+    
+    .form-group textarea {
+      height: 80px;
+      resize: vertical;
+    }
+    
+    .alert {
+      padding: var(--spacing-md);
+      border-radius: var(--spacing-xs);
+      margin: var(--spacing-md) 0;
       text-align: center;
+    }
+    
+    .alert-success { background: var(--success-color); }
+    .alert-warning { background: var(--warning-color); color: #000; }
+    .alert-danger { background: var(--danger-color); }
+    
+    .duplicate-warning {
+      background: var(--warning-color);
+      color: #000;
+      padding: var(--spacing-sm);
+      border-radius: var(--spacing-xs);
+      margin: var(--spacing-sm) 0;
+      font-size: var(--font-size-sm);
+    }
+    
+    @media (max-width: 480px) {
+      body { padding: var(--spacing-sm); }
+      h1 { font-size: 1.3em; margin: var(--spacing-sm) 0 var(--spacing-lg) 0; }
+      .btn { padding: var(--spacing-md); min-width: 70px; }
+      th, td { padding: var(--spacing-sm) var(--spacing-xs); font-size: var(--font-size-sm); }
+      .section { padding: var(--spacing-md); }
+      .setting-item { flex-direction: column; align-items: flex-start; gap: var(--spacing-sm); }
+      .setting-item select, .setting-item input { min-width: 100%; }
+      .modal-content { margin: 20% auto; padding: var(--spacing-lg); }
+    }
+    
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    
+    .backup-section {
+      border: 2px dashed var(--border-color);
+      padding: var(--spacing-lg);
+      text-align: center;
+    }
+    
+    .backup-section input[type="file"] {
+      margin: var(--spacing-md) 0;
     }
   </style>
 </head>
 <body>
-  <h1>📱 QRリーダー デモ</h1>
-  <div id="reader"></div>
-  <div id="result">スキャン結果がここに表示されます</div>
-  <div id="history">
-    <table>
-      <thead>
-        <tr><th>データ</th><th>入り数</th><th>箱数</th></tr>
-      </thead>
-      <tbody id="history-body"></tbody>
-    </table>
+  <div class="container">
+    <h1>📱 QRリーダー Pro</h1>
+    
+    <!-- 設定セクション -->
+    <div class="section">
+      <h3>⚙️ スキャン設定</h3>
+      <div class="setting-item">
+        <label for="extraction-mode">品番抽出:</label>
+        <select id="extraction-mode" aria-label="品番抽出モード">
+          <option value="auto">自動 (5桁-5桁-5桁)</option>
+          <option value="custom">カスタムパターン</option>
+          <option value="manual">手動確認</option>
+          <option value="off">無効</option>
+        </select>
+      </div>
+      <div class="setting-item" id="custom-pattern-group" style="display:none;">
+        <label for="custom-pattern">カスタムパターン:</label>
+        <input type="text" id="custom-pattern" placeholder="例: \d{4}-\d{4}-\d{4}" aria-label="カスタム正規表現パターン">
+      </div>
+      <div class="setting-item">
+        <label for="quality-select">スキャン精度:</label>
+        <select id="quality-select" aria-label="スキャン品質">
+          <option value="low">低 (高速)</option>
+          <option value="medium" selected>中 (標準)</option>
+          <option value="high">高 (精密)</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label for="qrbox-select">スキャンエリア:</label>
+        <select id="qrbox-select" aria-label="スキャンエリアサイズ">
+          <option value="200">小 (200px)</option>
+          <option value="250" selected>中 (250px)</option>
+          <option value="300">大 (300px)</option>
+          <option value="auto">自動調整</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label for="duplicate-check">重複チェック:</label>
+        <select id="duplicate-check" aria-label="重複検出設定">
+          <option value="off">無効</option>
+          <option value="exact" selected>完全一致</option>
+          <option value="time">時間制限付き (30秒)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- カメラセクション -->
+    <div class="section">
+      <div id="reader" role="application" aria-label="QRコードスキャナー"></div>
+      <div class="status" id="status" aria-live="polite">カメラを初期化中...</div>
+      <div class="result" id="result" aria-live="polite">スキャン結果がここに表示されます</div>
+    </div>
+    
+    <!-- コントロールセクション -->
+    <div class="controls">
+      <button id="start-btn" class="btn btn-success" aria-label="スキャン開始">▶️ 開始</button>
+      <button id="stop-btn" class="btn btn-danger" aria-label="スキャン停止">⏹️ 停止</button>
+      <button id="switch-camera-btn" class="btn" aria-label="カメラ切替">🔄 カメラ切替</button>
+      <button id="save-btn" class="btn" aria-label="データ保存">💾 保存</button>
+      <button id="export-btn" class="btn" aria-label="CSV出力">📥 CSV出力</button>
+      <button id="clear-btn" class="btn btn-warning" aria-label="履歴削除">🗑️ 履歴削除</button>
+    </div>
+
+    <!-- データ管理セクション -->
+    <div class="section">
+      <h3>💾 データ管理</h3>
+      <div class="backup-section">
+        <h4>バックアップ・復元</h4>
+        <button id="backup-btn" class="btn">📦 バックアップ作成</button>
+        <button id="restore-btn" class="btn">📂 復元</button>
+        <input type="file" id="restore-file" accept=".json" style="display:none;" aria-label="復元ファイル選択">
+        <div class="alert alert-warning" style="margin-top: var(--spacing-md);">
+          定期的なバックアップを推奨します
+        </div>
+      </div>
+    </div>
+    
+    <!-- 履歴テーブル -->
+    <div class="section">
+      <h3>📊 スキャン履歴 (<span id="history-count">0</span>件)</h3>
+      <div class="table-container">
+        <table role="table" aria-label="スキャン履歴テーブル">
+          <thead>
+            <tr>
+              <th scope="col">品番/データ</th>
+              <th scope="col">入り数</th>
+              <th scope="col">箱数</th>
+              <th scope="col">時刻</th>
+              <th scope="col">操作</th>
+            </tr>
+          </thead>
+          <tbody id="history-body" role="rowgroup">
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
-  <div style="text-align:center;">
-    <button id="switch-camera-btn">🔄 カメラ切替</button>
-    <button id="stop-btn">📴 スキャン停止</button>
-    <button id="export-btn">📥 CSVエクスポート</button>
-    <button id="save-btn">💾 保存</button>
-    <button id="clear-btn">🗑️ 履歴クリア</button>
+
+  <!-- 編集モーダル -->
+  <div id="edit-modal" class="modal" role="dialog" aria-labelledby="edit-modal-title" aria-hidden="true">
+    <div class="modal-content">
+      <span class="close" aria-label="閉じる">&times;</span>
+      <h3 id="edit-modal-title">データ編集</h3>
+      <form id="edit-form">
+        <div class="form-group">
+          <label for="edit-data">品番/データ:</label>
+          <textarea id="edit-data" required aria-label="編集するデータ"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="edit-irisu">入り数:</label>
+          <input type="number" id="edit-irisu" min="1" step="1" required aria-label="入り数">
+        </div>
+        <div class="form-group">
+          <label for="edit-hakosu">箱数:</label>
+          <input type="number" id="edit-hakosu" min="1" step="1" required aria-label="箱数">
+        </div>
+        <div class="controls">
+          <button type="submit" class="btn btn-success">💾 保存</button>
+          <button type="button" class="btn" id="cancel-edit">❌ キャンセル</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script>
-    const resultElem = document.getElementById('result');
-    const historyBody = document.getElementById('history-body');
-    const stopBtn = document.getElementById('stop-btn');
-    const exportBtn = document.getElementById('export-btn');
-    const clearBtn = document.getElementById('clear-btn');
-    const switchCameraBtn = document.getElementById('switch-camera-btn');
-    const saveBtn = document.getElementById('save-btn');
-
-    let scanHistory = JSON.parse(localStorage.getItem('qrScanHistory')) || [];
-    let currentFacingMode = "environment";
-
-    const qrReader = new Html5Qrcode("reader");
-
-    function renderHistory() {
-      historyBody.innerHTML = '';
-      scanHistory.forEach(item => {
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `<td>${item.data}</td><td>${item.irisu}</td><td>${item.hakosu}</td>`;
-        historyBody.appendChild(newRow);
-      });
-    }
-
-    function startScanner() {
-      qrReader.start(
-        { facingMode: currentFacingMode },
-        {
-          fps: 10,
-          qrbox: 250
-        },
-        qrCodeMessage => {
-          if (confirm(`読み取り結果: ${qrCodeMessage}\n登録しますか？`)) {
-            const irisu = prompt("入り数を入力してください", "1");
-            const hakosu = prompt("箱数を入力してください", "1");
-            if (irisu !== null && irisu !== "" && hakosu !== null && hakosu !== "") {
-              scanHistory.push({ data: qrCodeMessage, irisu: irisu, hakosu: hakosu });
-              renderHistory();
-            }
-          }
-        },
-        errorMessage => {
-          // 読み取りエラー時のメッセージ（省略可）
-        }
-      ).catch(err => {
-        resultElem.innerText = `起動エラー: ${err}`;
-      });
-    }
-
-    startScanner();
-    renderHistory();
-
-    stopBtn.addEventListener('click', () => {
-      qrReader.stop().then(() => {
-        resultElem.innerText = 'スキャン停止しました';
-      }).catch(err => {
-        resultElem.innerText = `停止エラー: ${err}`;
-      });
-    });
-
-    exportBtn.addEventListener('click', () => {
-      if (scanHistory.length === 0) {
-        alert('エクスポートする履歴がありません');
-        return;
+    // 定数定義
+    const CONFIG = {
+      STORAGE_KEY: 'qrScanHistory_v2',
+      SETTINGS_KEY: 'qrScanSettings_v2',
+      DUPLICATE_TIME_LIMIT: 30000, // 30秒
+      MAX_HISTORY_ITEMS: 1000,
+      QUALITY_SETTINGS: {
+        low: { fps: 15, aspectRatio: 1.0 },
+        medium: { fps: 10, aspectRatio: 1.33 },
+        high: { fps: 5, aspectRatio: 1.77 }
+      },
+      DEFAULT_PRODUCT_PATTERN: /\d{5}-\d{5}-\d{5}/,
+      ERROR_MESSAGES: {
+        CAMERA_PERMISSION: 'カメラの使用が許可されていません。ブラウザの設定でカメラアクセスを許可してください。',
+        CAMERA_NOT_FOUND: 'カメラが見つかりません。デバイスにカメラが接続されているか確認してください。',
+        CAMERA_IN_USE: 'カメラが他のアプリケーションで使用中です。',
+        SCAN_ERROR: 'スキャンでエラーが発生しました。しばらく待ってから再試行してください。',
+        UNKNOWN_ERROR: '予期しないエラーが発生しました。'
       }
-      const csvRows = ["データ,入り数,箱数"];
-      scanHistory.forEach(item => {
-        csvRows.push(`${item.data},${item.irisu},${item.hakosu}`);
-      });
-      const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", "qr_history.csv");
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    };
+
+    // アプリケーションクラス
+    class QRReaderApp {
+      constructor() {
+        this.scanHistory = [];
+        this.settings = {};
+        this.qrReader = null;
+        this.isScanning = false;
+        this.currentFacingMode = "environment";
+        this.lastScanTime = {};
+        this.editingIndex = -1;
+        
+        this.initializeElements();
+        this.loadData();
+        this.attachEventListeners();
+        this.updateUI();
+      }
+
+      initializeElements() {
+        // DOM要素の取得とキャッシュ
+        this.elements = {
+          reader: document.getElementById('reader'),
+          status: document.getElementById('status'),
+          result: document.getElementById('result'),
+          historyBody: document.getElementById('history-body'),
+          historyCount: document.getElementById('history-count'),
+          
+          // ボタン
+          startBtn: document.getElementById('start-btn'),
+          stopBtn: document.getElementById('stop-btn'),
+          switchCameraBtn: document.getElementById('switch-camera-btn'),
+          saveBtn: document.getElementById('save-btn'),
+          exportBtn: document.getElementById('export-btn'),
+          clearBtn: document.getElementById('clear-btn'),
+          backupBtn: document.getElementById('backup-btn'),
+          restoreBtn: document.getElementById('restore-btn'),
+          restoreFile: document.getElementById('restore-file'),
+          
+          // 設定
+          extractionMode: document.getElementById('extraction-mode'),
+          customPattern: document.getElementById('custom-pattern'),
+          customPatternGroup: document.getElementById('custom-pattern-group'),
+          qualitySelect: document.getElementById('quality-select'),
+          qrboxSelect: document.getElementById('qrbox-select'),
+          duplicateCheck: document.getElementById('duplicate-check'),
+          
+          // モーダル
+          editModal: document.getElementById('edit-modal'),
+          editForm: document.getElementById('edit-form'),
+          editData: document.getElementById('edit-data'),
+          editIrisu: document.getElementById('edit-irisu'),
+          editHakosu: document.getElementById('edit-hakosu'),
+          cancelEdit: document.getElementById('cancel-edit'),
+          closeModal: document.querySelector('.close')
+        };
+      }
+
+      loadData() {
+        try {
+          // 履歴データの読み込み
+          const savedHistory = localStorage.getItem(CONFIG.STORAGE_KEY);
+          this.scanHistory = savedHistory ? JSON.parse(savedHistory) : [];
+          
+          // 設定の読み込み
+          const savedSettings = localStorage.getItem(CONFIG.SETTINGS_KEY);
+          this.settings = savedSettings ? JSON.parse(savedSettings) : {};
+          
+          // 設定をUIに反映
+          this.applySettings();
+          
+        } catch (error) {
+          console.error('データ読み込みエラー:', error);
+          this.showAlert('データの読み込みに失敗しました', 'danger');
+        }
+      }
+
+      applySettings() {
+        if (this.settings.extractionMode) {
+          this.elements.extractionMode.value = this.settings.extractionMode;
+        }
+        if (this.settings.customPattern) {
+          this.elements.customPattern.value = this.settings.customPattern;
+        }
+        if (this.settings.quality) {
+          this.elements.qualitySelect.value = this.settings.quality;
+        }
+        if (this.settings.qrboxSize) {
+          this.elements.qrboxSelect.value = this.settings.qrboxSize;
+        }
+        if (this.settings.duplicateCheck) {
+          this.elements.duplicateCheck.value = this.settings.duplicateCheck;
+        }
+        
+        this.toggleCustomPattern();
+      }
+
+      saveData() {
+        try {
+          // 履歴を制限数でトリム
+          if (this.scanHistory.length > CONFIG.MAX_HISTORY_ITEMS) {
+            this.scanHistory = this.scanHistory.slice(-CONFIG.MAX_HISTORY_ITEMS);
+          }
+          
+          localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.scanHistory));
+          
+          // 設定保存
+          this.settings = {
+            extractionMode: this.elements.extractionMode.value,
+            customPattern: this.elements.customPattern.value,
+            quality: this.elements.qualitySelect.value,
+            qrboxSize: this.elements.qrboxSelect.value,
+            duplicateCheck: this.elements.duplicateCheck.value
+          };
+          localStorage.setItem(CONFIG.SETTINGS_KEY, JSON.stringify(this.settings));
+          
+        } catch (error) {
+          console.error('データ保存エラー:', error);
+          this.showAlert('データの保存に失敗しました', 'danger');
+        }
+      }
+
+      attachEventListeners() {
+        // カメラコントロール
+        this.elements.startBtn.addEventListener('click', () => this.toggleScanner());
+        this.elements.stopBtn.addEventListener('click', () => this.stopScanner());
+        this.elements.switchCameraBtn.addEventListener('click', () => this.switchCamera());
+        
+        // データ操作
+        this.elements.saveBtn.addEventListener('click', () => this.saveData());
+        this.elements.exportBtn.addEventListener('click', () => this.exportCSV());
+        this.elements.clearBtn.addEventListener('click', () => this.clearHistory());
+        this.elements.backupBtn.addEventListener('click', () => this.createBackup());
+        this.elements.restoreBtn.addEventListener('click', () => this.elements.restoreFile.click());
+        this.elements.restoreFile.addEventListener('change', (e) => this.restoreBackup(e));
+        
+        // 設定変更
+        this.elements.extractionMode.addEventListener('change', () => {
+          this.toggleCustomPattern();
+          this.restartScannerIfRunning();
+        });
+        this.elements.qualitySelect.addEventListener('change', () => this.restartScannerIfRunning());
+        this.elements.qrboxSelect.addEventListener('change', () => this.restartScannerIfRunning());
+        
+        // モーダル
+        this.elements.closeModal.addEventListener('click', () => this.closeEditModal());
+        this.elements.cancelEdit.addEventListener('click', () => this.closeEditModal());
+        this.elements.editForm.addEventListener('submit', (e) => this.saveEdit(e));
+        
+        // クリーンアップ
+        window.addEventListener('beforeunload', () => this.cleanup());
+        window.addEventListener('visibilitychange', () => {
+          if (document.hidden && this.isScanning) {
+            this.stopScanner();
+          }
+        });
+        
+        // レスポンシブ対応
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            if (this.isScanning) {
+              this.restartScannerIfRunning();
+            }
+          }, 500);
+        });
+      }
+
+      toggleCustomPattern() {
+        const isCustom = this.elements.extractionMode.value === 'custom';
+        this.elements.customPatternGroup.style.display = isCustom ? 'flex' : 'none';
+      }
+
+      updateUI() {
+        this.renderHistory();
+        this.elements.historyCount.textContent = this.scanHistory.length;
+        
+        // ボタン状態更新
+        this.elements.startBtn.textContent = this.isScanning ? '⏸️ 一時停止' : '▶️ 開始';
+        this.elements.stopBtn.disabled = !this.isScanning;
+        this.elements.exportBtn.disabled = this.scanHistory.length === 0;
+        this.elements.clearBtn.disabled = this.scanHistory.length === 0;
+      }
+
+      renderHistory() {
+        this.elements.historyBody.innerHTML = '';
+        
+        if (this.scanHistory.length === 0) {
+          const emptyRow = document.createElement('tr');
+          emptyRow.innerHTML = '<td colspan="5" style="text-align:center;color:#ccc;">データがありません</td>';
+          this.elements.historyBody.appendChild(emptyRow);
+          return;
+        }
+        
+        this.scanHistory.forEach((item, index) => {
+          const row = this.createHistoryRow(item, index);
+          this.elements.historyBody.appendChild(row);
+        });
+      }
+
+      createHistoryRow(item, index) {
+        const row = document.createElement('tr');
+        row.setAttribute('role', 'row');
+        
+        const time = new Date(item.timestamp || Date.now()).toLocaleTimeString('ja-JP', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        const displayData = this.escapeHtml(item.data);
+        const truncatedData = displayData.length > 15 ? displayData.substring(0, 15) + '...' : displayData;
+        const statusIcon = item.isExtracted ? '🏷️' : '📄';
+        
+        row.innerHTML = `
+          <td class="data-cell" title="${displayData}">${statusIcon} ${truncatedData}</td>
+          <td>${this.escapeHtml(item.irisu)}</td>
+          <td>${this.escapeHtml(item.hakosu)}</td>
+          <td>${time}</td>
+          <td>
+            <button class="btn btn-table" onclick="app.editItem(${index})" aria-label="編集">✏️</button>
+            <button class="btn btn-table" onclick="app.viewDetails(${index})" aria-label="詳細">👁️</button>
+            <button class="btn btn-table btn-danger" onclick="app.deleteItem(${index})" aria-label="削除">🗑️</button>
+          </td>
+        `;
+        
+        return row;
+      }
+
+      // XSS対策のHTMLエスケープ
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      updateStatus(message, type = 'info') {
+        this.elements.status.textContent = message;
+        this.elements.status.className = `status ${type}`;
+      }
+
+      updateResult(message, isHtml = false) {
+        if (isHtml) {
+          this.elements.result.innerHTML = message;
+        } else {
+          this.elements.result.textContent = message;
+        }
+      }
+
+      showAlert(message, type = 'info') {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        
+        this.elements.result.innerHTML = '';
+        this.elements.result.appendChild(alert);
+        
+        setTimeout(() => {
+          if (this.elements.result.contains(alert)) {
+            alert.remove();
+          }
+        }, 5000);
+      }
+
+      getQRBoxSize() {
+        const selected = this.elements.qrboxSelect.value;
+        if (selected === 'auto') {
+          const width = Math.min(window.innerWidth - 40, 400);
+          return Math.min(width * 0.7, 300);
+        }
+        return parseInt(selected);
+      }
+
+      getExtractionPattern() {
+        const mode = this.elements.extractionMode.value;
+        
+        switch (mode) {
+          case 'auto':
+            return CONFIG.DEFAULT_PRODUCT_PATTERN;
+          case 'custom':
+            try {
+              const pattern = this.elements.customPattern.value.trim();
+              return pattern ? new RegExp(pattern) : null;
+            } catch (error) {
+              console.warn('カスタムパターンが無効:', error);
+              return null;
+            }
+          case 'manual':
+            return CONFIG.DEFAULT_PRODUCT_PATTERN;
+          default:
+            return null;
+        }
+      }
+
+      extractProductCode(qrCodeMessage) {
+        const mode = this.elements.extractionMode.value;
+        
+        if (mode === 'off') {
+          return { code: qrCodeMessage, isExtracted: false };
+        }
+        
+        const pattern = this.getExtractionPattern();
+        if (!pattern) {
+          return { code: qrCodeMessage, isExtracted: false };
+        }
+        
+        const match = qrCodeMessage.match(pattern);
+        if (!match) {
+          return { code: qrCodeMessage, isExtracted: false };
+        }
+        
+        const extractedCode = match[0];
+        
+        if (mode === 'manual') {
+          const confirmed = confirm(`品番を検出しました:\n${extractedCode}\n\n元データ: ${qrCodeMessage}\n\nこの品番を使用しますか？`);
+          if (!confirmed) {
+            return { code: qrCodeMessage, isExtracted: false };
+          }
+        }
+        
+        return { code: extractedCode, isExtracted: true, originalData: qrCodeMessage };
+      }
+
+      checkDuplicate(data) {
+        const duplicateMode = this.elements.duplicateCheck.value;
+        
+        if (duplicateMode === 'off') {
+          return { isDuplicate: false };
+        }
+        
+        const now = Date.now();
+        
+        if (duplicateMode === 'exact') {
+          const exists = this.scanHistory.some(item => item.data === data);
+          return { isDuplicate: exists, type: 'exact' };
+        }
+        
+        if (duplicateMode === 'time') {
+          const recent = this.lastScanTime[data];
+          if (recent && (now - recent) < CONFIG.DUPLICATE_TIME_LIMIT) {
+            return { isDuplicate: true, type: 'time', timeLeft: Math.ceil((CONFIG.DUPLICATE_TIME_LIMIT - (now - recent)) / 1000) };
+          }
+          this.lastScanTime[data] = now;
+        }
+        
+        return { isDuplicate: false };
+      }
+
+      validateInput(irisu, hakosu) {
+        const irisuNum = parseFloat(irisu);
+        const hakosuNum = parseFloat(hakosu);
+        
+        if (isNaN(irisuNum) || irisuNum <= 0) {
+          return { valid: false, message: '入り数は正の数値を入力してください' };
+        }
+        
+        if (isNaN(hakosuNum) || hakosuNum <= 0) {
+          return { valid: false, message: '箱数は正の数値を入力してください' };
+        }
+        
+        if (!Number.isInteger(irisuNum) || !Number.isInteger(hakosuNum)) {
+          return { valid: false, message: '入り数と箱数は整数を入力してください' };
+        }
+        
+        return { valid: true };
+      }
+
+      async startScanner() {
+        if (this.isScanning) {
+          this.stopScanner();
+          return;
+        }
+        
+        try {
+          this.updateStatus('カメラを起動中...');
+          
+          const quality = CONFIG.QUALITY_SETTINGS[this.elements.qualitySelect.value];
+          const qrboxSize = this.getQRBoxSize();
+          
+          this.qrReader = new Html5Qrcode("reader");
+          
+          const config = {
+            fps: quality.fps,
+            qrbox: qrboxSize,
+            aspectRatio: quality.aspectRatio,
+            disableFlip: false,
+            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+          };
+
+          const constraints = {
+            facingMode: this.currentFacingMode,
+            advanced: [{
+              focusMode: "continuous",
+              whiteBalanceMode: "auto",
+              exposureMode: "auto"
+            }]
+          };
+
+          await this.qrReader.start(
+            constraints,
+            config,
+            (qrCodeMessage) => this.handleScanSuccess(qrCodeMessage),
+            (errorMessage) => {
+              // 連続スキャンエラーは無視
+            }
+          );
+          
+          this.isScanning = true;
+          this.updateStatus('📷 スキャン中... QRコードをカメラに向けてください', 'success');
+          this.updateUI();
+          
+        } catch (error) {
+          this.handleScanError(error);
+        }
+      }
+
+      handleScanSuccess(qrCodeMessage) {
+        try {
+          // バイブレーション（対応デバイスのみ）
+          if (navigator.vibrate) {
+            navigator.vibrate(100);
+          }
+          
+          // 品番抽出
+          const { code, isExtracted, originalData } = this.extractProductCode(qrCodeMessage);
+          
+          // 重複チェック
+          const duplicateCheck = this.checkDuplicate(code);
+          
+          let resultMessage = isExtracted 
+            ? `✅ 品番抽出: ${this.escapeHtml(code)}`
+            : `✅ 読み取り成功: ${this.escapeHtml(code)}`;
+          
+          if (duplicateCheck.isDuplicate) {
+            resultMessage += `<br><div class="duplicate-warning">`;
+            if (duplicateCheck.type === 'exact') {
+              resultMessage += `⚠️ このデータは既に登録されています`;
+            } else if (duplicateCheck.type === 'time') {
+              resultMessage += `⚠️ ${duplicateCheck.timeLeft}秒前にスキャンされています`;
+            }
+            resultMessage += `</div>`;
+          }
+          
+          this.updateResult(resultMessage, true);
+          
+          // 確認ダイアログ
+          let confirmMessage = isExtracted 
+            ? `品番: ${code}\n\n登録しますか？`
+            : `読み取り結果: ${code}\n\n登録しますか？`;
+          
+          if (duplicateCheck.isDuplicate) {
+            confirmMessage += '\n\n※ 重複の可能性があります';
+          }
+          
+          if (confirm(confirmMessage)) {
+            this.showDataInputDialog(code, originalData || qrCodeMessage, isExtracted);
+          }
+          
+        } catch (error) {
+          console.error('スキャン処理エラー:', error);
+          this.showAlert('スキャンデータの処理に失敗しました', 'danger');
+        }
+      }
+
+      showDataInputDialog(code, originalData, isExtracted) {
+        const irisu = prompt("入り数を入力してください", "1");
+        if (irisu === null) return;
+        
+        const hakosu = prompt("箱数を入力してください", "1");
+        if (hakosu === null) return;
+        
+        const validation = this.validateInput(irisu, hakosu);
+        if (!validation.valid) {
+          alert(validation.message);
+          return;
+        }
+        
+        this.addHistoryItem(code, originalData, isExtracted, irisu, hakosu);
+      }
+
+      addHistoryItem(data, originalData, isExtracted, irisu, hakosu) {
+        const newItem = {
+          data: data,
+          originalData: originalData,
+          isExtracted: isExtracted,
+          irisu: irisu,
+          hakosu: hakosu,
+          timestamp: Date.now()
+        };
+        
+        this.scanHistory.push(newItem);
+        this.saveData();
+        this.updateUI();
+        
+        const status = isExtracted ? ' - 品番抽出済み' : '';
+        this.updateStatus(`✅ データを登録しました (${this.scanHistory.length}件)${status}`, 'success');
+      }
+
+      handleScanError(error) {
+        console.error('スキャンエラー:', error);
+        
+        let message = CONFIG.ERROR_MESSAGES.UNKNOWN_ERROR;
+        
+        if (error.name === 'NotAllowedError' || error.message.includes('Permission')) {
+          message = CONFIG.ERROR_MESSAGES.CAMERA_PERMISSION;
+        } else if (error.name === 'NotFoundError' || error.message.includes('No camera')) {
+          message = CONFIG.ERROR_MESSAGES.CAMERA_NOT_FOUND;
+        } else if (error.name === 'NotReadableError' || error.message.includes('in use')) {
+          message = CONFIG.ERROR_MESSAGES.CAMERA_IN_USE;
+        }
+        
+        this.updateStatus(`❌ ${message}`, 'danger');
+        this.showAlert(message, 'danger');
+        this.isScanning = false;
+        this.updateUI();
+      }
+
+      stopScanner() {
+        if (!this.isScanning || !this.qrReader) return;
+        
+        try {
+          this.qrReader.stop().then(() => {
+            this.cleanup();
+            this.updateStatus('⏹️ スキャンを停止しました');
+            this.updateResult('スキャンを停止しました');
+          }).catch(error => {
+            console.error('スキャナー停止エラー:', error);
+            this.cleanup();
+          });
+        } catch (error) {
+          console.error('スキャナー停止エラー:', error);
+          this.cleanup();
+        }
+      }
+
+      cleanup() {
+        this.isScanning = false;
+        if (this.qrReader) {
+          try {
+            this.qrReader.clear();
+          } catch (error) {
+            console.warn('QRリーダークリーンアップエラー:', error);
+          }
+          this.qrReader = null;
+        }
+        this.updateUI();
+      }
+
+      toggleScanner() {
+        if (this.isScanning) {
+          this.stopScanner();
+        } else {
+          this.startScanner();
+        }
+      }
+
+      switchCamera() {
+        if (this.isScanning) {
+          this.stopScanner();
+          setTimeout(() => {
+            this.currentFacingMode = this.currentFacingMode === "environment" ? "user" : "environment";
+            this.updateStatus(`📷 ${this.currentFacingMode === "environment" ? "背面" : "前面"}カメラに切替中...`);
+            this.startScanner();
+          }, 500);
+        } else {
+          this.currentFacingMode = this.currentFacingMode === "environment" ? "user" : "environment";
+          this.updateStatus(`📷 ${this.currentFacingMode === "environment" ? "背面" : "前面"}カメラに設定しました`);
+        }
+      }
+
+      restartScannerIfRunning() {
+        if (this.isScanning) {
+          this.stopScanner();
+          setTimeout(() => this.startScanner(), 500);
+        }
+      }
+
+      exportCSV() {
+        if (this.scanHistory.length === 0) {
+          this.showAlert('エクスポートする履歴がありません', 'warning');
+          return;
+        }
+        
+        try {
+          const now = new Date();
+          const filename = `qr_history_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}.csv`;
+          
+          const csvRows = ["品番/データ,入り数,箱数,登録時刻,元データ,抽出フラグ"];
+          
+          this.scanHistory.forEach(item => {
+            const time = new Date(item.timestamp || Date.now()).toLocaleString('ja-JP');
+            const originalData = (item.originalData || item.data).replace(/"/g, '""');
+            const data = item.data.replace(/"/g, '""');
+            const extractedFlag = item.isExtracted ? '1' : '0';
+            
+            csvRows.push(`"${data}","${item.irisu}","${item.hakosu}","${time}","${originalData}","${extractedFlag}"`);
+          });
+          
+          const csvContent = "\uFEFF" + csvRows.join("\n");
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          
+          const link = document.createElement("a");
+          if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            this.showAlert(`📥 ${filename} をダウンロードしました`, 'success');
+          }
+        } catch (error) {
+          console.error('CSV出力エラー:', error);
+          this.showAlert('CSV出力に失敗しました', 'danger');
+        }
+      }
+
+      clearHistory() {
+        if (this.scanHistory.length === 0) {
+          this.showAlert('削除する履歴がありません', 'warning');
+          return;
+        }
+        
+        if (confirm(`履歴をすべて削除しますか？\n${this.scanHistory.length}件のデータが削除されます。`)) {
+          this.scanHistory = [];
+          this.lastScanTime = {};
+          this.saveData();
+          this.updateUI();
+          this.showAlert('🗑️ 履歴をクリアしました', 'success');
+        }
+      }
+
+      createBackup() {
+        try {
+          const backupData = {
+            version: '2.0',
+            timestamp: Date.now(),
+            history: this.scanHistory,
+            settings: this.settings
+          };
+          
+          const now = new Date();
+          const filename = `qr_backup_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}.json`;
+          
+          const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+          const link = document.createElement("a");
+          
+          if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            this.showAlert(`📦 バックアップを作成しました: ${filename}`, 'success');
+          }
+        } catch (error) {
+          console.error('バックアップ作成エラー:', error);
+          this.showAlert('バックアップの作成に失敗しました', 'danger');
+        }
+      }
+
+      restoreBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const backupData = JSON.parse(e.target.result);
+            
+            if (!backupData.version || !backupData.history) {
+              throw new Error('無効なバックアップファイルです');
+            }
+            
+            if (confirm(`バックアップを復元しますか？\n現在のデータ: ${this.scanHistory.length}件\nバックアップデータ: ${backupData.history.length}件\n\n※現在のデータは上書きされます`)) {
+              this.scanHistory = backupData.history || [];
+              this.settings = backupData.settings || {};
+              
+              this.saveData();
+              this.applySettings();
+              this.updateUI();
+              
+              this.showAlert(`📂 バックアップを復元しました (${this.scanHistory.length}件)`, 'success');
+            }
+          } catch (error) {
+            console.error('バックアップ復元エラー:', error);
+            this.showAlert('バックアップの復元に失敗しました。ファイルを確認してください。', 'danger');
+          }
+        };
+        
+        reader.readAsText(file);
+        event.target.value = ''; // ファイル選択をリセット
+      }
+
+      editItem(index) {
+        if (index < 0 || index >= this.scanHistory.length) return;
+        
+        this.editingIndex = index;
+        const item = this.scanHistory[index];
+        
+        this.elements.editData.value = item.data;
+        this.elements.editIrisu.value = item.irisu;
+        this.elements.editHakosu.value = item.hakosu;
+        
+        this.elements.editModal.style.display = 'block';
+        this.elements.editModal.setAttribute('aria-hidden', 'false');
+        this.elements.editData.focus();
+      }
+
+      saveEdit(event) {
+        event.preventDefault();
+        
+        if (this.editingIndex < 0 || this.editingIndex >= this.scanHistory.length) {
+          this.closeEditModal();
+          return;
+        }
+        
+        const data = this.elements.editData.value.trim();
+        const irisu = this.elements.editIrisu.value.trim();
+        const hakosu = this.elements.editHakosu.value.trim();
+        
+        const validation = this.validateInput(irisu, hakosu);
+        if (!validation.valid) {
+          alert(validation.message);
+          return;
+        }
+        
+        if (!data) {
+          alert('データを入力してください');
+          return;
+        }
+        
+        this.scanHistory[this.editingIndex].data = data;
+        this.scanHistory[this.editingIndex].irisu = irisu;
+        this.scanHistory[this.editingIndex].hakosu = hakosu;
+        this.scanHistory[this.editingIndex].editedAt = Date.now();
+        
+        this.saveData();
+        this.updateUI();
+        this.closeEditModal();
+        
+        this.showAlert('✅ データを更新しました', 'success');
+      }
+
+      closeEditModal() {
+        this.elements.editModal.style.display = 'none';
+        this.elements.editModal.setAttribute('aria-hidden', 'true');
+        this.editingIndex = -1;
+      }
+
+      deleteItem(index) {
+        if (index < 0 || index >= this.scanHistory.length) return;
+        
+        const item = this.scanHistory[index];
+        if (confirm(`このデータを削除しますか？\n\nデータ: ${item.data}\n入り数: ${item.irisu}\n箱数: ${item.hakosu}`)) {
+          this.scanHistory.splice(index, 1);
+          this.saveData();
+          this.updateUI();
+          this.showAlert('🗑️ データを削除しました', 'success');
+        }
+      }
+
+      viewDetails(index) {
+        if (index < 0 || index >= this.scanHistory.length) return;
+        
+        const item = this.scanHistory[index];
+        const registeredTime = new Date(item.timestamp).toLocaleString('ja-JP');
+        const editedTime = item.editedAt ? new Date(item.editedAt).toLocaleString('ja-JP') : 'なし';
+        
+        const message = [
+          '詳細情報:',
+          '',
+          `品番/データ: ${item.data}`,
+          `元データ: ${item.originalData || item.data}`,
+          `入り数: ${item.irisu}`,
+          `箱数: ${item.hakosu}`,
+          `品番抽出: ${item.isExtracted ? 'あり' : 'なし'}`,
+          `登録時刻: ${registeredTime}`,
+          `編集時刻: ${editedTime}`
+        ].join('\n');
+        
+        alert(message);
+      }
+    }
+
+    // アプリケーション初期化
+    let app;
+    
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        app = new QRReaderApp();
+        console.log('QRリーダーアプリが初期化されました');
+      } catch (error) {
+        console.error('アプリケーション初期化エラー:', error);
+        document.getElementById('status').textContent = 'アプリケーションの初期化に失敗しました';
+      }
     });
 
-    clearBtn.addEventListener('click', () => {
-      scanHistory = [];
-      localStorage.removeItem('qrScanHistory');
-      renderHistory();
-      resultElem.innerText = '履歴をクリアしました';
+    // モーダル外クリックで閉じる
+    window.addEventListener('click', (event) => {
+      if (event.target === document.getElementById('edit-modal')) {
+        app?.closeEditModal();
+      }
     });
 
-    saveBtn.addEventListener('click', () => {
-      localStorage.setItem('qrScanHistory', JSON.stringify(scanHistory));
-      alert('履歴を保存しました');
-    });
-
-    switchCameraBtn.addEventListener('click', () => {
-      qrReader.stop().then(() => {
-        currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
-        startScanner();
-      }).catch(err => {
-        resultElem.innerText = `カメラ切替エラー: ${err}`;
-      });
+    // ESCキーでモーダルを閉じる
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        app?.closeEditModal();
+      }
     });
   </script>
 </body>
